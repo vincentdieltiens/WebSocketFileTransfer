@@ -297,20 +297,6 @@ var WebSocketFileTransfer = new Class({
 		this.socket.send(window.btoa(data));
 	},
 	/**
-	 * Is The File API supported ?
-	 * @return true if the API is supported
-	 */
-	fileAPISupported: function() {
-		return 'File' in window && 'FileReader' in window && 'FileList' in window && 'Blob' in window;
-	},
-	/**
-	 * Is WebSocket supported on this browser ?
-	 * @return true if Web sockets are supported
-	 */
-	socketSupported: function() {
-		return 'WebSocket' in window || 'MozWebSocket' in window;
-	},
-	/**
 	 * Creates the socket according to the browser
 	 * @param url : the url of the web socket
 	 * @return the url
@@ -321,13 +307,6 @@ var WebSocketFileTransfer = new Class({
 		} else if( 'MozWebSocket' in window ) {
 			return new MozWebSocket(url);
 		}
-	},
-	/** 
-	 * Is This client supported
-	 * @return this if this client supported by the browser
-	 */
-	supported: function() {
-		return this.socketSupported() && this.fileAPISupported();
 	},
 	// The web socket
 	socket: null,
@@ -340,3 +319,27 @@ var WebSocketFileTransfer = new Class({
 	// 
 	startTime: null
 });
+
+/**
+ * Is The File API supported ?
+ * @return true if the API is supported
+ */
+WebSocketFileTransfer.fileAPISupported = function() {
+	return 'File' in window && 'FileReader' in window && 'FileList' in window && 'Blob' in window;
+};
+
+/**
+ * Is WebSocket supported on this browser ?
+ * @return true if Web sockets are supported
+ */
+WebSocketFileTransfer.socketSupported = function() {
+	return 'WebSocket' in window || 'MozWebSocket' in window;
+};
+
+/** 
+ * Is This client supported
+ * @return this if this client supported by the browser
+ */
+WebSocketFileTransfer.supported = function() {
+	return WebSocketFileTransfer.socketSupported() && WebSocketFileTransfer.fileAPISupported();
+};

@@ -1,0 +1,15 @@
+.progressBar {
+	border: 1px solid #000;
+	width: 400px;
+	height: 15px;
+	margin: 5px;
+}
+
+.progressBar .progress {
+	background-color: #000088;
+	height: 100%;
+}
+
+.progressBar .progress.finished {
+	background-color: #008800;
+}
