@@ -52,14 +52,14 @@ The WebSocketFileTransfer class accepts an dict of options as parameter.
 
 this options can be:
 
-	* **url**: the url of the server
-	* **file**: the file to upload
-	* **progress**: an handler to follow the progress of the upload
-	* **success**: an handler called when the upload is finished
-	* **open**: an handler called when the connection to the server is established
-	* **close**: an handler called when the connection to the server is closed
-	* **blockSize**: the size of packets to send. Default is 1024
-	* **type**: the type of transfer : binary or base64. Default is 'base64'
+* **url**: the url of the server
+* **file**: the file to upload
+* **progress**: an handler to follow the progress of the upload
+* **success**: an handler called when the upload is finished
+* **open**: an handler called when the connection to the server is established
+* **close**: an handler called when the connection to the server is closed
+* **blockSize**: the size of packets to send. Default is 1024
+* **type**: the type of transfer : binary or base64. Default is 'base64'
 	
 The **url** and **file** are required.
 
