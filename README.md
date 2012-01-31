@@ -59,19 +59,21 @@ The server must respectively answser this :
 
 * JSON response to STOR message :
 	
-	{
-		"type": "STOR",
-		"message": "Upload initialized. Wait for data",
-		"code": 200
-	}
+		{
+			"type": "STOR",
+			"message": "Upload initialized. Wait for data",
+			"code": 200
+		}
 	
 Note that the message value can be changed
 
 * JSON response to a DATA message
 
-	{"type": "DATA",
-		 "code": 200,
-		 "bytesRead": numberOfBytesReceivedAndReadByTheServer}
+		{
+			"type": "DATA",
+			"code": 200,
+			"bytesRead": numberOfBytesReceivedAndReadByTheServer
+		}
 
 ## Contact & Help
 
