@@ -6,7 +6,7 @@ This class use the Mootools's class system. You may include only the class file 
 
 ## Compatibility
 
-WebSocketFileTransfer is only compatible with browsers that support the following features of HTML 5 :
+WebSocketFileTransfer is only compatible with browsers that support the following features of HTML 5:
 
 * [Web Sockets](http://caniuse.com/#feat=websockets)
 * [File API](http://caniuse.com/#feat=fileapi)
@@ -17,14 +17,14 @@ WebSocketFileTransfer is only compatible with browsers that support the followin
 
 1. You must have a Web Socket server compatible with WebSocketFileTransfer. See the Server section for more details
 
-2. You must first import the mootools class System. WebSocketFileTransfer requires at least this features from mootools :
+2. You must first import the mootools class System. WebSocketFileTransfer requires at least this features from mootools:
 	* Core
 	* Event
 	* Class
 	* Class.Extras
 	* JSON
 
-	Here is the download link : http://mootools.net/core/d6edd91125b538672227900235ce1b56
+	Here is the download link: http://mootools.net/core/d6edd91125b538672227900235ce1b56
 
 3. Next, you have to include WebSocketFileTransfer.js
 
@@ -45,19 +45,49 @@ WebSocketFileTransfer is only compatible with browsers that support the followin
 		});
 
 		transfer.start();
+
+## Options
+
+The WebSocketFileTransfer class accepts an dict of options as parameter.
+
+this options can be:
+
+	* **url**: the url of the server
+	* **file**: the file to upload
+	* **progress**: an handler to follow the progress of the upload
+	* **success**: an handler called when the upload is finished
+	* **open**: an handler called when the connection to the server is established
+	* **close**: an handler called when the connection to the server is closed
+	* **blockSize**: the size of packets to send. Default is 1024
+	* **type**: the type of transfer : binary or base64. Default is 'base64'
 	
+The **url** and **file** are required.
+
+The type of transfer supported by the major browsers is only 'base64'. At this time, only Chrome 16 (the current last version), support binary.
+If you have loaded the **Browser** feature of Mootools, you can do this :
+
+	var transfer = new WebSocketFileTransfer({
+		...,
+		type: WebSocketFileTransfer.binarySupported() ? 'binary' : 'base64',
+	});
+
+Note that, this is better to use binary because :
+
+	1. You don't have to convert it to base64
+	2. base64 encoding make data longer, so you have more data to upload.
+
 ## Server
 
 You are free to use or implement any Web Socket server you want, in any which language you want. The only thing required is to support a specific API.
 
-The WebSocketFileTransfer sends two types of message :
+The WebSocketFileTransfer sends two types of message:
 
 * **STOR [json_data]**
 * **[base64_data]**
 
-The server must respectively answser this :
+The server must respectively answser this:
 
-* JSON response to STOR message :
+* JSON response to STOR message:
 	
 		{
 			"type": "STOR",
@@ -74,6 +104,10 @@ Note that the message value can be changed
 			"code": 200,
 			"bytesRead": numberOfBytesReceivedAndReadByTheServer
 		}
+		
+You can find a example of PHP Web Sockets Server compatible with this client on my repositories:
+	* [PhpWebSocketFileTransferServer](https://github.com/vincentdieltiens/PhpWebSocketFileTransferServer)
+	* and his dependency [phpws](https://github.com/vincentdieltiens/phpws)
 
 ## Contact & Help
 

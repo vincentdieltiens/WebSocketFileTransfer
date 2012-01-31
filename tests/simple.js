@@ -37,6 +37,7 @@ $(document).ready(function() {
 				url: socketServerUrl,
 				file: files[i],
 				blockSize: 1024,
+				WebSocketFileTransfer.binarySupported() ? 'binary' : 'base64',
 				$progress: $progress,
 				progress: function(event) {
 					this.$progress.css('width', event.percentage+'%');

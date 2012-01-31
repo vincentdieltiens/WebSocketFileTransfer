@@ -1,4 +1,14 @@
 /**
+ * WebSocketFileTransfer
+ * This is a small library
+ * @name WebSocketFileTransfer.js
+ * @author Vincent Dieltiens - www.vincentdieltiens.be
+ * @version DEV-0.1
+ * @date January 30 2012
+ * @license MIT
+ */
+ 
+/**
  * Class that represents a Progress Event
  */
 var WebSocketFileTransferEvent = new Class({
@@ -43,7 +53,7 @@ var WebSocketFileTransferEvent = new Class({
 	// The computed speed
 	speed: '',
 	// The related file
-	file: null
+	file: null,
 });
 
 /**
@@ -79,7 +89,8 @@ var WebSocketFileTransfer = new Class({
 		},
 		error: function(event) {
 			this.fireEvent('onerror', event);
-		}
+		},
+		type: 'base64' // ['base64', 'binary']
 	},
 	/**
 	 * Creates an object to upload a file
@@ -89,6 +100,11 @@ var WebSocketFileTransfer = new Class({
 		if( 'file' in options ) {
 			this.setFile(options.file);
 		}
+		
+		if( this.options.type != 'base64' && this.options.type  != 'binary') {
+			throw new Error("type must be 'base64' or 'binary'");
+		}
+		
 		this.setOptions(options);
 	},
 	/**
@@ -105,6 +121,10 @@ var WebSocketFileTransfer = new Class({
 		var self = this;
 		
 		this.socket = this.createSocket(self.options.url);
+		
+		if( this.options.type == 'binary' ) {
+			this.socket.binaryType = 'blob';
+		}
 		
 		this.socket.onopen = function(event) {
 			self.onOpen(event);
@@ -229,6 +249,7 @@ var WebSocketFileTransfer = new Class({
 		var infos = {
 			'filename': this.file.name,
 			'size': this.file.size,
+			'type': this.options.type,
 			'parameters': []
 		};
 		this.socket.send('STOR: '+JSON.encode(infos));
@@ -249,13 +270,21 @@ var WebSocketFileTransfer = new Class({
 		var stop = Math.min(start + length - 1, self.file.size-1);
 		var length = stop - start + 1;
 		
+		// Save if it is the last block of data to send
+		self.lastBlock = (stop == self.file.size-1);
+		
 		// Get blob and check his size
 		var blob = self.file.slice(start, start+length);
 		if( blob.size != length ) {
 			throw new Error("slice fail ! : slice result size is "+blob.size+". Expected : "+length);
 		}
 		
-		// Creates the reader
+		if( self.options.type == 'binary' ) {
+			self.sendSlice(blob);
+			return;
+		}
+		
+		// Creates the reader only for base 64 encoded data
 		self.reader = new FileReader();
 		
 		self.reader.onabort = function() {
@@ -283,11 +312,15 @@ var WebSocketFileTransfer = new Class({
 			self.sendB64Slice(event.target.result);
 		};
 		
-		// Save if it is the last block of data to send
-		self.lastBlock = (stop == self.file.size-1);
-		
 		// Read the file/blob
 		self.reader.readAsBinaryString(blob);
+	},
+	/**
+	 * Send the block of bindary data to the socket
+	 * @param data : the block of data to send
+	 */
+	sendSlice: function(data) {
+		this.socket.send(data);
 	},
 	/**
 	 * Send the block of data to the socket as a base64 string
@@ -338,8 +371,21 @@ WebSocketFileTransfer.socketSupported = function() {
 
 /** 
  * Is This client supported
- * @return this if this client supported by the browser
+ * @return true if this client supported by the browser
  */
 WebSocketFileTransfer.supported = function() {
 	return WebSocketFileTransfer.socketSupported() && WebSocketFileTransfer.fileAPISupported();
 };
+
+// If Browser feature of Mootools is loaded, we can test the browser's version
+// to guess if the binary is supported by the browser
+if( Browser ) {
+
+	/**
+	 * Is binary supported by the client ?
+	 * @return true if binary is supported
+	 */
+	WebSocketFileTransfer.binarySupported = function() {
+		return Browser.chrome16;
+	}
+}
