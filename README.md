@@ -50,7 +50,7 @@ WebSocketFileTransfer is only compatible with browsers that support the followin
 
 The WebSocketFileTransfer class accepts an dict of options as parameter.
 
-this options can be:
+these options can be:
 
 * **url**: the url of the server
 * **file**: the file to upload
