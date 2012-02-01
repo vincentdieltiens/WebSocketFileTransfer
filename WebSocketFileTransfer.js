@@ -14,11 +14,11 @@
 var WebSocketFileTransferEvent = new Class({
 	/**
 	 * Initialize an event object
-	 * @param source : the source of this event (a.k.a the creator)
-	 * @param file : the related file
-	 * @param loaded : the number of bytes loaded
-	 * @param total : the total of bytes
-	 * @param startTime : the time at which the transfer has began
+	 * @param source: the source of this event (a.k.a the creator)
+	 * @param file: the related file
+	 * @param loaded: the number of bytes loaded
+	 * @param total: the total of bytes
+	 * @param startTime: the time at which the transfer has began
 	 */
 	initialize: function(source, file, loaded, total, startTime) {
 		this.source = source;
@@ -59,8 +59,8 @@ var WebSocketFileTransferEvent = new Class({
 /**
  * Ads a general slice to the File prototype.
  * This method just returns the result of File.webkitSlice or File.mozSlice according to the browser
- * @param start : the starting byte
- * @param length : the number of bytes to slice
+ * @param start: the starting byte
+ * @param length: the number of bytes to slice
  */
 File.prototype.slice = function(start, length) {
 	if( this.webkitSlice ) {
@@ -94,7 +94,7 @@ var WebSocketFileTransfer = new Class({
 	},
 	/**
 	 * Creates an object to upload a file
-	 * @param options : the options
+	 * @param options: the options
 	 */
 	initialize: function(options) {
 		if( 'file' in options ) {
@@ -109,7 +109,7 @@ var WebSocketFileTransfer = new Class({
 	},
 	/**
 	 * Update the file of this client
-	 * @param file : the new file
+	 * @param file: the new file
 	 */
 	setFile: function(file) {
 		this.file = file;
@@ -117,8 +117,11 @@ var WebSocketFileTransfer = new Class({
 	/**
 	 * Starts the upload of the file through a socket
 	 */
-	start: function() {
+	start: function(login, password) {
 		var self = this;
+		
+		var login = (typeof(login) == "undefined") ? null: login;
+		var password = (typeof(password) == "undefined") ? null: password;
 		
 		this.socket = this.createSocket(self.options.url);
 		
@@ -127,7 +130,7 @@ var WebSocketFileTransfer = new Class({
 		}
 		
 		this.socket.onopen = function(event) {
-			self.onOpen(event);
+			self.onOpen(event, login, password);
 		}
 		
 		this.socket.onmessage = function(event) {
@@ -145,18 +148,27 @@ var WebSocketFileTransfer = new Class({
 	/**
 	 * Handler called when the connection with the socket is opened
 	 * This handler call the onOpen handler defined in options and initialize the upload
-	 * @param event : the event
+	 * @param event: the event
+	 * @param login: 
+	 * @param password:
 	 */
-	onOpen: function(event) {
+	onOpen: function(event, login, password) {
+	
 		if( typeof(this.options.onOpen) == 'function' ) {
 			this.options.onOpen(event);
 		}
 		
-		this.initializeUpload();
+		if( login != null && password != null ) {
+			this.useAuth = true;
+			this.sendAuth(login, password);
+		} else {
+			this.initializeUpload();
+		}
+		
 	},
 	/**
 	 * Handler called when a new message is received from the web socket
-	 * This handler parse the response. Two alternatives :
+	 * This handler parse the response. Two alternatives:
 	 *   1/ The response is a response to a STOR command.
 	 * 			If the response code is 200, we read the first block from the
 	 *			file and send it to the socket.
@@ -164,78 +176,97 @@ var WebSocketFileTransfer = new Class({
 	 *			If the response code is 200, we send a progress event. 
 	 *			If the all the data has been sent, we also send a success event,
 	 *			If not all the data has been sent, we read and send the next block of data
-	 * @param event : the event
+	 * @param event: the event
 	 */
 	onMessage: function(event) {
 		var self = this;
 		
 		response = self.parseResponse(event.data);
 		
-		if( response.type == 'STOR' ) {
-			// Response to a STOR command.
-			if( response.code == 200 ) {
-				self.startTime = (new Date().getTime())/1000.0;
-				self.readSlice(0, this.options.blockSize);
+		if( response.code != 200 ) {
+			var error = {
+				message: response.message,
+				code: response.code
 			}
+			self.onError(error);
+			return false;
+		}
+		
+		if( response.type == 'AUTH' ) {
+			self.initializeUpload();
+		} else if( response.type == 'STOR' ) {
+			// Response to a STOR command.
+			self.startTime = (new Date().getTime())/1000.0;
+			self.readSlice(0, this.options.blockSize);
 			
 		} else if( response.type == 'DATA' ) {
 			// Response to a DATA command.
-			if( response.code == 200 ) {
+			// Copy object informations into local var to have the 
+			var curIndex = self.curIndex;
+			var lastBlock = self.lastBlock;
 			
-				// Copy object informations into local var to have the 
-				var curIndex = self.curIndex;
-				var lastBlock = self.lastBlock;
-				
-				// Send an asynchrone event to notify that some data has been sent
+			// Send an asynchrone event to notify that some data has been sent
+			setTimeout(function() {
+				var e = new WebSocketFileTransferEvent(self, self.file, curIndex + response.bytesRead, self.file.size, self.startTime);
+				if( typeof(self.options.progress) == 'function' ) {
+					self.options.progress(e);
+				}
+			}, 0);
+			
+			// If all the data has been sent, send an asynchrone success event 
+			if( lastBlock ) {
+			
 				setTimeout(function() {
 					var e = new WebSocketFileTransferEvent(self, self.file, curIndex + response.bytesRead, self.file.size, self.startTime);
-					if( typeof(self.options.progress) == 'function' ) {
-						self.options.progress(e);
+					if( typeof(self.options.success) == 'function' ) {
+						self.options.success(e);
 					}
 				}, 0);
-				
-				// If all the data has been sent, send an asynchrone success event 
-				if( lastBlock ) {
-				
-					setTimeout(function() {
-						var e = new WebSocketFileTransferEvent(self, self.file, curIndex + response.bytesRead, self.file.size, self.startTime);
-						if( typeof(self.options.success) == 'function' ) {
-							self.options.success(e);
-						}
-					}, 0);
-				
-					// Close the connection
-					self.socket.close();
-					return;
-				}
 			
-				// Read and send the next block
-				self.readSlice(self.curIndex + this.options.blockSize, this.options.blockSize);
+				// Close the connection
+				self.socket.close();
+				return;
 			}
+		
+			// Read and send the next block
+			self.readSlice(self.curIndex + this.options.blockSize, this.options.blockSize);
 			
 		} else {
-			alert('response not understood');
-			console.log(response);
+			var error = {
+				message: "Response not understood",
+				code: 0
+			}
+			self.onError(error);
+			return false;
 		}
 		
 		//readSlice(curIndex, this.options.blockSize);
 	},
 	/**
 	 * Handler called when a websocket error has occured
-	 * @param event : the event
+	 * @param event: the event
 	 */
 	onError: function(event) {
-		console.log('error');
+		var self = this;
+		self.socket.close();
+		
+		if( typeof(self.options.error) == 'function' ) {
+			self.options.error(event);
+		}
 	},
 	/**
 	 * Handler called when the web socket server close the connection
+	 * @param event: the event
 	 */
 	onClose: function(event) {
-		console.log('close');
+		var self = this;
+		if( typeof(self.options.close) == 'function' ) {
+			self.options.close(event);
+		}
 	},
 	/**
 	 * parse the server response
-	 * @param response : the response to parse
+	 * @param response: the response to parse
 	 * @return the response as an JS object/array
 	 */
 	parseResponse: function(response) {
@@ -246,19 +277,37 @@ var WebSocketFileTransfer = new Class({
 	 * ... by sending the STOR command to the server
 	 */
 	initializeUpload: function() {
+	
 		var infos = {
 			'filename': this.file.name,
 			'size': this.file.size,
 			'type': this.options.type,
 			'parameters': []
 		};
+		
 		this.socket.send('STOR: '+JSON.encode(infos));
+		
+	},
+	/**
+	 * Send the AUTH command to the server to authenticate the user
+	 * @param login: the login
+	 * @param password: the password
+	 */
+	sendAuth: function(login, password) {
+		
+		var infos = {
+			'login': login,
+			'password': password
+		};
+		
+		this.socket.send('AUTH: '+JSON.encode(infos));
+		
 	},
 	/**
 	 * Read the block of data starting at the start index with the given number of data
 	 * and send it to the web socket
-	 * @param start : the stating index
-	 * @param length : the number of bytes to read and send
+	 * @param start: the stating index
+	 * @param length: the number of bytes to read and send
 	 */
 	readSlice: function(start, length) {
 		var self = this;
@@ -276,7 +325,7 @@ var WebSocketFileTransfer = new Class({
 		// Get blob and check his size
 		var blob = self.file.slice(start, start+length);
 		if( blob.size != length ) {
-			throw new Error("slice fail ! : slice result size is "+blob.size+". Expected : "+length);
+			throw new Error("slice fail !: slice result size is "+blob.size+". Expected: "+length);
 		}
 		
 		if( self.options.type == 'binary' ) {
@@ -317,21 +366,21 @@ var WebSocketFileTransfer = new Class({
 	},
 	/**
 	 * Send the block of bindary data to the socket
-	 * @param data : the block of data to send
+	 * @param data: the block of data to send
 	 */
 	sendSlice: function(data) {
 		this.socket.send(data);
 	},
 	/**
 	 * Send the block of data to the socket as a base64 string
-	 * @param data : the block of data to send
+	 * @param data: the block of data to send
 	 */
 	sendB64Slice: function(data) {
 		this.socket.send(window.btoa(data));
 	},
 	/**
 	 * Creates the socket according to the browser
-	 * @param url : the url of the web socket
+	 * @param url: the url of the web socket
 	 * @return the url
 	 */
 	createSocket: function(url) {
@@ -350,7 +399,9 @@ var WebSocketFileTransfer = new Class({
 	// The last block to send or not
 	lastBlock: false,
 	// 
-	startTime: null
+	startTime: null,
+	// Use Authentification or not
+	useAuth: false
 });
 
 /**

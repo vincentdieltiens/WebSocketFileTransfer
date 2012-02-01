@@ -80,12 +80,38 @@ Note that, this is better to use binary because :
 
 You are free to use or implement any Web Socket server you want, in any which language you want. The only thing required is to support a specific API.
 
-The WebSocketFileTransfer sends two types of message:
+The WebSocketFileTransfer sends three types of message:
 
-* **STOR [json_data]**
-* **[base64_data]**
+* **AUTH** [json_data]
 
-The server must respectively answser this:
+	Example:
+
+		AUTH: {
+			'login': 'username',
+			'password': 'password'
+		}
+
+* **STOR** [json_data]
+
+	Example:
+	
+		STOR: {
+			'filename': 'test.txt',
+			'size': 4200,
+			'type': 'binary',
+		}
+
+* [base64_data]
+
+The server must respectively answer this:
+
+* JSON response to AUTH message:
+		
+		{
+			"type": "AUTH",
+			"message": "Authentification success",
+			"code": 200
+		}
 
 * JSON response to STOR message:
 	
