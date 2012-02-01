@@ -46,6 +46,11 @@ WebSocketFileTransfer is only compatible with browsers that support the followin
 
 		transfer.start();
 
+If you want to authenticate before upload the file, your can pass the username and password to the start method :
+
+		transfer.start(myUsername, myPassword);
+
+
 ## Options
 
 The WebSocketFileTransfer class accepts an dict of options as parameter.
