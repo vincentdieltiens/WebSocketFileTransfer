@@ -50,6 +50,7 @@ If you want to authenticate before upload the file, your can pass the username a
 
 		transfer.start(myUsername, myPassword);
 
+You can see the in the diagram folder, a diagram explaining the communication between WebSocketFileTransfer and a server.
 
 ## Options
 
